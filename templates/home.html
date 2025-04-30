@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boston House Price Prediction</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+            transition: background 0.5s ease;
+        }
+
+        body.light-theme {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            min-height: 100vh;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        /* Theme Switcher */
+        .theme-switcher {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .theme-switcher button {
+            padding: 10px 20px;
+            background: #ff6f61;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .theme-switcher button:hover {
+            background: #ff9f43;
+        }
+
+        body.light-theme .theme-switcher button {
+            background: #6c757d;
+        }
+
+        body.light-theme .theme-switcher button:hover {
+            background: #5a6268;
+        }
+
+        /* Form Section */
+        .form-section {
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .form-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-height: 80vh;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #ffffff80 #ffffff20;
+            transform: perspective(1000px) rotateY(5deg);
+            transition: transform 0.5s ease;
+        }
+
+        body.light-theme .form-container {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .form-container:hover {
+            transform: perspective(1000px) rotateY(0deg);
+        }
+
+        .form-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .form-container::-webkit-scrollbar-track {
+            background: #ffffff20;
+            border-radius: 10px;
+        }
+
+        .form-container::-webkit-scrollbar-thumb {
+            background: #ffffff80;
+            border-radius: 10px;
+        }
+
+        body.light-theme .form-container::-webkit-scrollbar-track {
+            background: #e0e0e0;
+        }
+
+        body.light-theme .form-container::-webkit-scrollbar-thumb {
+            background: #6c757d;
+        }
+
+        h1 {
+            color: #fff;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 32px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: linear-gradient(to right, #ff6f61, #ff9f43);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        body.light-theme h1 {
+            background: linear-gradient(to right, #ff6f61, #ff9f43);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        label {
+            color: #fff;
+            font-weight: 500;
+            font-size: 14px;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        body.light-theme label {
+            color: #333;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        body.light-theme input[type="text"] {
+            background: rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            color: #333;
+        }
+
+        input[type="text"]:focus {
+            border-color: #ff9f43;
+            box-shadow: 0 0 8px rgba(255, 159, 67, 0.5);
+            outline: none;
+        }
+
+        input.invalid {
+            border-color: #ff4d4d;
+            box-shadow: 0 0 8px rgba(255, 77, 77, 0.5);
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            margin-left: 5px;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #ff6f61;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="submit"], input[type="reset"] {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+
+        input[type="submit"] {
+            background: #ff6f61;
+            color: white;
+        }
+
+        input[type="submit"]:hover {
+            background: #ff9f43;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 159, 67, 0.4);
+        }
+
+        input[type="reset"] {
+            background: #6c757d;
+            color: white;
+        }
+
+        input[type="reset"]:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #ff6f61;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .live-preview {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            text-align: center;
+            color: #fff;
+        }
+
+        body.light-theme .live-preview {
+            background: rgba(0, 0, 0, 0.05);
+            color: #333;
+        }
+
+        /* Right Section: Gallery and History */
+        .right-section {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .gallery-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transform: perspective(1000px) rotateY(-5deg);
+            transition: transform 0.5s ease;
+        }
+
+        .gallery-container:hover {
+            transform: perspective(1000px) rotateY(0deg);
+        }
+
+        body.light-theme .gallery-container {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .gallery {
+            display: flex;
+            overflow-x: auto;
+            gap: 10px;
+            padding-bottom: 10px;
+            scrollbar-width: thin;
+            scrollbar-color: #ffffff80 #ffffff20;
+        }
+
+        .gallery::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .gallery::-webkit-scrollbar-track {
+            background: #ffffff20;
+            border-radius: 10px;
+        }
+
+        .gallery::-webkit-scrollbar-thumb {
+            background: #ffffff80;
+            border-radius: 10px;
+        }
+
+        body.light-theme .gallery::-webkit-scrollbar-track {
+            background: #e0e0e0;
+        }
+
+        body.light-theme .gallery::-webkit-scrollbar-thumb {
+            background: #6c757d;
+        }
+
+        .gallery img {
+            width: 200px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 10px;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+
+        .gallery img:hover {
+            transform: scale(1.05);
+        }
+
+        /* Modal for Full-Size Images */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 10px;
+        }
+
+        .modal .close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: #fff;
+            font-size: 40px;
+            cursor: pointer;
+        }
+
+        /* Prediction History */
+        .history-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-height: 40vh;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #ffffff80 #ffffff20;
+        }
+
+        body.light-theme .history-container {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .history-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .history-container::-webkit-scrollbar-track {
+            background: #ffffff20;
+            border-radius: 10px;
+        }
+
+        .history-container::-webkit-scrollbar-thumb {
+            background: #ffffff80;
+            border-radius: 10px;
+        }
+
+        body.light-theme .history-container::-webkit-scrollbar-track {
+            background: #e0e0e0;
+        }
+
+        body.light-theme .history-container::-webkit-scrollbar-thumb {
+            background: #6c757d;
+        }
+
+        .history-container h2 {
+            color: #fff;
+            font-size: 20px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        body.light-theme .history-container h2 {
+            color: #333;
+        }
+
+        .prediction-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        body.light-theme .prediction-item {
+            background: rgba(0, 0, 0, 0.05);
+            color: #333;
+        }
+
+        .clear-history-btn {
+            padding: 10px;
+            background: #ff6f61;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.3s ease;
+        }
+
+        .clear-history-btn:hover {
+            background: #ff9f43;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 159, 67, 0.4);
+        }
+
+        body.light-theme .clear-history-btn {
+            background: #6c757d;
+        }
+
+        body.light-theme .clear-history-btn:hover {
+            background: #5a6268;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 900px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+            .gallery img {
+                width: 150px;
+                height: 100px;
+            }
+            .form-container, .gallery-container, .history-container {
+                transform: none;
+            }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="theme-switcher">
+        <button onclick="toggleTheme()">Toggle Theme</button>
+    </div>
+
+    <div class="main-container">
+        <!-- Form Section -->
+        <div class="form-section">
+            <div class="form-container">
+                <h1>Boston House Price Prediction</h1>
+                <form id="prediction-form" method="POST" action="/predict" onsubmit="return validateForm()">
+                    <!-- Original 13 features for the model -->
+                    <div class="form-group">
+                        <label>CRIM (Crime Rate):
+                            <span class="tooltip">?
+                                <span class="tooltiptext">Per capita crime rate by town</span>
+                            </span>
+                        </label>
+                        <input type="text" name="crim" required oninput="updateLivePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>ZN (Zoning):
+                            <span class="tooltip">?
+                                <span class="tooltiptext">Proportion of residential land zoned for lots over 25,000 sq.ft.</span>
+                            </span>
+                        </label>
+                        <input type="text" name="zn" required oninput="updateLivePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>INDUS (Industrial):
+                            <span class="tooltip">?
+                                <span class="tooltiptext">Proportion of non-retail business acres per town</span>
+                            </span>
+                        </label>
+                        <input type="text" name="indus" required oninput="updateLivePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>CHAS (Charles River):
+                            <span class="tooltip">?
+                                <span class="tooltiptext">1 if tract bounds river; 0 otherwise</span>
+                            </span>
+                        </label>
+                        <input type="text" name="chas" required oninput="updateLivePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>NOX (Nitric Oxides):
+                            <span class="tooltip">?
+                                <span class="tooltiptext">Nitric oxides concentration (parts per 10 million)</span>
+                            </span>
+                        </label>
+                        <input type="text" name="nox" required oninput="updateLivePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>RM (Rooms):
+                            <span class="tooltip">?
+                                <span class="tooltiptext">Average number of rooms per dwelling</span>
+                            </span>
+                        </label>
+                        <input type="text" name="rm" required oninput="updateLivePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>AGE (Age):
+                            <span class="tooltip">?
+                                <span class="tooltiptext">Proportion of owner-occupied units built prior to 1940</span>
+                            </span>
+                        </label>
+                        <input type="text" name="age" required oninput="updateLivePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>DIS (Distance):
+                            <span class="tooltip">?
+                                <span class="tooltiptext">Weighted distances to five Boston employment centers</span>
+                            </span>
+                        </label>
+                        <input type="text" name="dis" required oninput="updateLivePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>RAD (Radial Highways):
+                            <span class="tooltip">?
+                                <span class="tooltiptext">Index of accessibility to radial highways</span>
+                            </span>
+                        </label>
+                        <input type="text" name="rad" required oninput="updateLivePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>TAX (Tax Rate):
+                            <span class="tooltip">?
+                                <span class="tooltiptext">Full-value property-tax rate per $10,000</span>
+                            </span>
+                        </label>
+                        <input type="text" name="tax" required oninput="updateLivePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>PTRATIO (Pupil-Teacher):
+                            <span class="tooltip">?
+                                <span class="tooltiptext">Pupil-teacher ratio by town</span>
+                            </span>
+                        </label>
+                        <input type="text" name="ptratio" required oninput="updateLivePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>B (Black Population):
+                            <span class="tooltip">?
+                                <span class="tooltiptext">1000(Bk - 0.63)^2 where Bk is the proportion of Black population</span>
+                            </span>
+                        </label>
+                        <input type="text" name="b" required oninput="updateLivePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>LSTAT (Lower Status):
+                            <span class="tooltip">?
+                                <span class="tooltiptext">Percentage of lower status of the population</span>
+                            </span>
+                        </label>
+                        <input type="text" name="lstat" required oninput="updateLivePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>Year Built:
+                            <span class="tooltip">?
+                                <span class="tooltiptext">Year the house was built (e.g., 1990)</span>
+                            </span>
+                        </label>
+                        <input type="text" name="year_built" required oninput="updateLivePreview()">
+                    </div>
+
+                    <!-- Additional fields for UI enhancement (optional) -->
+                    <div class="form-group">
+                        <label>Neighborhood Quality (1-10):
+                            <span class="tooltip">?
+                                <span class="tooltiptext">Subjective quality of the neighborhood (1-10)</span>
+                            </span>
+                        </label>
+                        <input type="text" name="neighborhood_quality" placeholder="e.g., 8">
+                    </div>
+                    <div class="form-group">
+                        <label>Square Footage:
+                            <span class="tooltip">?
+                                <span class="tooltiptext">Total square footage of the house</span>
+                            </span>
+                        </label>
+                        <input type="text" name="square_footage" placeholder="e.g., 2000">
+                    </div>
+                    <div class="form-group">
+                        <label>Number of Floors:
+                            <span class="tooltip">?
+                                <span class="tooltiptext">Number of floors in the house</span>
+                            </span>
+                        </label>
+                        <input type="text" name="floors" placeholder="e.g., 2">
+                    </div>
+                    <div class="form-group">
+                        <label>Has Garage (0/1):
+                            <span class="tooltip">?
+                                <span class="tooltiptext">1 if the house has a garage, 0 otherwise</span>
+                            </span>
+                        </label>
+                        <input type="text" name="has_garage" placeholder="e.g., 1">
+                    </div>
+
+                    <div class="button-group">
+                        <input type="submit" value="Predict Price">
+                        <input type="reset" value="Reset Form">
+                    </div>
+                </form>
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p style="color: #fff; margin-top: 10px;">Predicting...</p>
+                </div>
+                <div class="live-preview" id="live-preview">
+                    Estimated Price Range: ₹-- Lakh - ₹-- Lakh
+                </div>
+                {% if prediction_text %}
+                    <div class="prediction-item" id="server-prediction">
+                        {{ prediction_text }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right Section: Gallery and History -->
+        <div class="right-section">
+            <div class="gallery-container">
+                <h2 style="color: #fff; text-align: center; margin-bottom: 15px;">House Gallery</h2>
+                <div class="gallery" id="house-gallery">
+                    <!-- Images will be added dynamically via JavaScript -->
+                </div>
+            </div>
+            <div class="history-container">
+                <h2>Prediction History</h2>
+                <div id="prediction-history">
+                    {% if prediction_text %}
+                        <div class="prediction-item">{{ prediction_text }}</div>
+                    {% endif %}
+                </div>
+                <button class="clear-history-btn" onclick="clearHistory()">Clear History</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Full-Size Images -->
+    <div class="modal" id="image-modal">
+        <span class="close" onclick="closeModal()">×</span>
+        <img id="modal-image" src="" alt="Full Size House Image">
+    </div>
+
+    <script>
+        // Theme Switcher
+        function toggleTheme() {
+            document.body.classList.toggle('light-theme');
+            localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark');
+            updateModalStyles();
+        }
+
+        // Update modal styles based on theme
+        function updateModalStyles() {
+            const modal = document.getElementById('image-modal');
+            if (document.body.classList.contains('light-theme')) {
+                modal.style.background = 'rgba(255, 255, 255, 0.8)';
+            } else {
+                modal.style.background = 'rgba(0, 0, 0, 0.8)';
+            }
+        }
+
+        // Client-Side Validation
+        function validateForm() {
+            const inputs = document.querySelectorAll('#prediction-form input[required]');
+            let isValid = true;
+
+            inputs.forEach(input => {
+                const value = input.value.trim();
+                if (isNaN(value) || value === '') {
+                    input.classList.add('invalid');
+                    isValid = false;
+                } else {
+                    input.classList.remove('invalid');
+                }
+            });
+
+            if (!isValid) {
+                alert('Please enter valid numeric values for all required fields.');
+                return false;
+            }
+
+            showLoading();
+            return true;
+        }
+
+        // Show loading spinner
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+
+        // Modal for Full-Size Images
+        function openModal(src) {
+            const modal = document.getElementById('image-modal');
+            const modalImage = document.getElementById('modal-image');
+            modalImage.src = src;
+            modal.style.display = 'flex';
+            updateModalStyles();
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('image-modal');
+            modal.style.display = 'none';
+        }
+
+        // Simulated live preview (client-side estimate)
+        function updateLivePreview() {
+            const inputs = document.querySelectorAll('#prediction-form input[type="text"][required]');
+            let sum = 0;
+            let valid = true;
+
+            inputs.forEach(input => {
+                const value = parseFloat(input.value);
+                if (!isNaN(value) && input.value !== '') {
+                    sum += value;
+                } else {
+                    valid = false;
+                }
+            });
+
+            const preview = document.getElementById('live-preview');
+            if (valid && inputs.length === 14) {
+                const basePrice = sum * 1000;
+                const minPrice = basePrice * 0.8;
+                const maxPrice = basePrice * 1.2;
+                const conversionRate = 83;
+                const minPriceINR = (minPrice * conversionRate) / 100000;
+                const maxPriceINR = (maxPrice * conversionRate) / 100000;
+                preview.textContent = `Estimated Price Range: ₹${minPriceINR.toFixed(2)} Lakh - ₹${maxPriceINR.toFixed(2)} Lakh`;
+            } else {
+                preview.textContent = 'Estimated Price Range: ₹-- Lakh - ₹-- Lakh';
+            }
+        }
+
+        // Add prediction to history
+        function addToHistory(prediction) {
+            const history = JSON.parse(localStorage.getItem('predictionHistory')) || [];
+            history.unshift(prediction);
+            if (history.length > 5) history.pop();
+            localStorage.setItem('predictionHistory', JSON.stringify(history));
+
+            const historyContainer = document.getElementById('prediction-history');
+            historyContainer.innerHTML = ''; // Clear existing items
+            history.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'prediction-item';
+                div.textContent = item;
+                historyContainer.appendChild(div);
+            });
+        }
+
+        // Clear prediction history
+        function clearHistory() {
+            localStorage.removeItem('predictionHistory');
+            const historyContainer = document.getElementById('prediction-history');
+            historyContainer.innerHTML = ''; // Clear the UI
+            alert('Prediction history has been cleared!');
+        }
+
+        // Load theme, gallery, and history on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load theme
+            const theme = localStorage.getItem('theme');
+            if (theme === 'light') {
+                document.body.classList.add('light-theme');
+            }
+
+            // Populate house gallery with alternative URLs and fallback
+            const houseImages = [
+                { url: 'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1', alt: 'House 1' },
+                { url: 'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1', alt: 'House 2' },
+                { url: 'https://images.pexels.com/photos/1029599/pexels-photo-1029599.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1', alt: 'House 3' },
+                { url: 'https://images.pexels.com/photos/186077/pexels-photo-186077.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1', alt: 'House 4' }
+            ];
+
+            const gallery = document.getElementById('house-gallery');
+            houseImages.forEach(image => {
+                const img = document.createElement('img');
+                img.src = image.url;
+                img.alt = image.alt;
+                img.onerror = () => {
+                    img.src = 'https://via.placeholder.com/200x150?text=House+Image';
+                    img.alt = 'Fallback House Image';
+                };
+                img.onclick = () => openModal(image.url);
+                gallery.appendChild(img);
+            });
+
+            // Load existing prediction history
+            const history = JSON.parse(localStorage.getItem('predictionHistory')) || [];
+            const historyContainer = document.getElementById('prediction-history');
+            history.forEach(prediction => {
+                const item = document.createElement('div');
+                item.className = 'prediction-item';
+                item.textContent = prediction;
+                historyContainer.appendChild(item);
+            });
+
+            // Add server-side prediction to history
+            const serverPrediction = document.getElementById('server-prediction')?.textContent;
+            if (serverPrediction) {
+                addToHistory(serverPrediction);
+            }
+        });
+
+        // Close modal on click outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('image-modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        };
+    </script>
+</body>
+</html>
